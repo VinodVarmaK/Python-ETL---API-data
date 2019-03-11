@@ -64,3 +64,19 @@ def data_output(data):
         data_output(data_organizer(data_fetch(url_builder(2172797))))
     except IOError:
         print('no internet')
+        
+ 
+ import mysql.connector    
+cnx = mysql.connector.connect(user='root', password='root',
+                              host='localhost', port="3306",  database='sakila')
+
+
+try:
+   cursor = cnx.cursor()
+   cursor.execute("""
+      select * from actor
+   """)
+   result = cursor.fetchall()
+   print (result)
+finally:
+    cnx.close()
