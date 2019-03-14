@@ -2,20 +2,21 @@ import datetime
 import json
 import urllib.request
 
+ def url_builder(city_id):
+    user_api = '32bd71a6bae5381b136e7667c5315edb'  # Obtained after registering with Open weather form: http://openweathermap.org/
+    unit = 'metric'  
+    api = 'http://api.openweathermap.org/data/2.5/weather?id='     # Berlin city id = 2950159 in http://openweathermap.org/
+    full_api_url = api + str(2950159) + '&mode=json&units=' + unit + '&APPID=' + user_api
+    return full_api_url
+
+#data pre processing 
 def time_converter(time):
     converted_time = datetime.datetime.fromtimestamp(
         int(time)
     ).strftime('%I:%M %p')
     return converted_time
-    
- def url_builder(city_id):
-    user_api = '32bd71a6bae5381b136e7667c5315edb'  # Obtain yours form: http://openweathermap.org/
-    unit = 'metric'  # For Fahrenheit use imperial, for Celsius use metric, and the default is Kelvin.
-    api = 'http://api.openweathermap.org/data/2.5/weather?id='     # Search for your city ID here: http://bulk.openweathermap.org/sample/city.list.json.gz
 
-    full_api_url = api + str(2950159) + '&mode=json&units=' + unit + '&APPID=' + user_api
-    return full_api_url
-    
+
 def data_fetch(full_api_url):
     url = urllib.request.urlopen(full_api_url)
     output = url.read().decode('utf-8')
@@ -61,22 +62,36 @@ def data_output(data):
     
  if __name__ == '__main__':
     try:
-        data_output(data_organizer(data_fetch(url_builder(2172797))))
+     data = data_output(data_organizer(data_fetch(url_builder(2172797))))
     except IOError:
         print('no internet')
         
- 
- import mysql.connector    
+
+#Writing the data to CSV file in local system
+my_dict=data
+with open('mycsvfile.csv', 'w') as f:  # Just use 'w' mode in 3.x
+    w = csv.DictWriter(f, my_dict.keys())
+    w.writeheader()
+    w.writerow(my_dict)
+    
+#connecting to Mysql database     
+import csv
+import mysql.connector    
 cnx = mysql.connector.connect(user='root', password='root',
-                              host='localhost', port="3306",  database='sakila')
+                              host='localhost', port="3306",  database='test')
 
+cursor = mydb.cursor()
 
-try:
-   cursor = cnx.cursor()
-   cursor.execute("""
-      select * from actor
-   """)
-   result = cursor.fetchall()
-   print (result)
-finally:
-    cnx.close()
+#reading the data from downloaded CSV file and loading it into a test fact table
+csv_data = csv.reader(open('C:/Users/Vinod Varma/Documents/mycsvfile.csv'))
+for row in csv_data:
+
+    cursor.execute('INSERT INTO test_weather(sunrise,sunset,wind,sky,temp_min,temp_max,wind_deg,pressure,temp, \
+                   humidity,dt,cloudiness,country,city)' \
+          'VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', 
+          row)
+#close the connection to the database.
+mydb.commit()
+cursor.close()
+print ("Done")
+
